@@ -9,6 +9,7 @@ import time
 from datetime import datetime
 
 MORPH_API_KEY = os.environ['MORPH_MORPH_API_KEY']
+SLACK_WEBHOOK_URL = os.environ['SLACK_WEBHOOK_URL']
 BASE_URL = 'https://api.morph.io/wdiv-scrapers/'
 STATIONS_QUERY = '/data.json?query=select%20timestamp%2Ccontent_hash%2Ccouncil_id%20from%20%27history%27%20WHERE%20%60table%60%3D%27stations%27%20ORDER%20BY%20timestamp%3B'
 DISTRICTS_QUERY = '/data.json?query=select%20timestamp%2Ccontent_hash%2Ccouncil_id%20from%20%27history%27%20WHERE%20%60table%60%3D%27districts%27%20ORDER%20BY%20timestamp%3B'
@@ -58,8 +59,9 @@ class MorphReport:
         self.github = github_wrapper
         self.morph = morph_wrapper
         self.report = []
+        self.slack_messages = []
 
-    def summarise_history(self, history):
+    def summarise_history(self, history, repo_name, entity):
         # Summarise some info from the history table
         result = {}
         first_hash = history[0]['content_hash']
@@ -79,6 +81,12 @@ class MorphReport:
         result['changes'] = changes
         result['last_changed'] = last_changed
 
+        if history[-2]['content_hash'] != history[-1]['content_hash']:
+            self.slack_messages.append(
+                'New content hash for scraper <https://morph.io/wdiv-scrapers/%s/> (%s) at %s - check your import script' %
+                (repo_name, entity, str(last_changed))
+            )
+
         return result
 
     def report_history_query(self, repo_name, query, entity):
@@ -86,7 +94,7 @@ class MorphReport:
         try:
             history = self.morph.query(repo_name, query)
             if len(history) > 0:
-                record = self.summarise_history(history)
+                record = self.summarise_history(history, repo_name, entity)
                 record['scraper'] = repo_name
                 record['entity'] = entity
                 return record
@@ -117,11 +125,19 @@ class MorphReport:
         return self.report
 
 
+class PollingBot:
+
+    def post_slack_messages(self, messages):
+        for message in messages:
+            r = requests.post(SLACK_WEBHOOK_URL, json={ "text": message })
+
+
 gh = GitHubWrapper()
 morph = MorphWrapper()
 mr = MorphReport(gh, morph)
 data = mr.full_report()
 
+# save data to DB
 scraperwiki.sqlite.execute("DROP TABLE IF EXISTS report;")
 scraperwiki.sqlite.commit_transactions()
 
@@ -131,3 +147,7 @@ for row in data:
         data=row,
         table_name='report')
     scraperwiki.sqlite.commit_transactions()
+
+# post Slack updates
+bot = PollingBot()
+bot.post_slack_messages(mr.slack_messages)
