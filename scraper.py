@@ -9,7 +9,7 @@ import time
 from datetime import datetime
 
 MORPH_API_KEY = os.environ['MORPH_MORPH_API_KEY']
-SLACK_WEBHOOK_URL = os.environ['SLACK_WEBHOOK_URL']
+SLACK_WEBHOOK_URL = os.environ['MORPH_SLACK_WEBHOOK_URL']
 BASE_URL = 'https://api.morph.io/wdiv-scrapers/'
 STATIONS_QUERY = '/data.json?query=select%20timestamp%2Ccontent_hash%2Ccouncil_id%20from%20%27history%27%20WHERE%20%60table%60%3D%27stations%27%20ORDER%20BY%20timestamp%3B'
 DISTRICTS_QUERY = '/data.json?query=select%20timestamp%2Ccontent_hash%2Ccouncil_id%20from%20%27history%27%20WHERE%20%60table%60%3D%27districts%27%20ORDER%20BY%20timestamp%3B'
