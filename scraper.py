@@ -81,11 +81,14 @@ class MorphReport:
         result['changes'] = changes
         result['last_changed'] = last_changed
 
-        if history[-2]['content_hash'] != history[-1]['content_hash']:
-            self.slack_messages.append(
-                'New content hash for scraper <https://morph.io/wdiv-scrapers/%s/> (%s) at %s - check your import script' %
-                (repo_name, entity, str(last_changed))
-            )
+        if len(history) == 1:
+            self.slack_messages.append('New scraper found: <https://morph.io/wdiv-scrapers/%s/> (%s)' % (repo_name, entity))
+        else:
+            if history[-2]['content_hash'] != history[-1]['content_hash']:
+                self.slack_messages.append(
+                    'New content hash for scraper <https://morph.io/wdiv-scrapers/%s/> (%s) at %s - check your import script' %
+                    (repo_name, entity, str(last_changed))
+                )
 
         return result
 
