@@ -7,6 +7,8 @@ import requests
 import scraperwiki
 import time
 from datetime import datetime
+from polling_bot.brain import SlackClient
+
 
 MORPH_API_KEY = os.environ['MORPH_MORPH_API_KEY']
 SLACK_WEBHOOK_URL = os.environ['MORPH_SLACK_WEBHOOK_URL']
@@ -128,13 +130,6 @@ class MorphReport:
         return self.report
 
 
-class PollingBot:
-
-    def post_slack_messages(self, messages):
-        for message in messages:
-            r = requests.post(SLACK_WEBHOOK_URL, json={ "text": message })
-
-
 gh = GitHubWrapper()
 morph = MorphWrapper()
 mr = MorphReport(gh, morph)
@@ -152,5 +147,5 @@ for row in data:
     scraperwiki.sqlite.commit_transactions()
 
 # post Slack updates
-bot = PollingBot()
-bot.post_slack_messages(mr.slack_messages)
+slack = SlackClient(SLACK_WEBHOOK_URL)
+slack.post_messages(mr.slack_messages)
